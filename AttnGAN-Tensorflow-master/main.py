@@ -26,7 +26,7 @@ def parse_args():
     parser.add_argument('--embed_weight', type=int, default=1, help='Weight about embed_weight')
 
     parser.add_argument('--z_dim', type=int, default=100, help='condition & noise z dimension')
-    parser.add_argument('--embed_dim', type=int, default=128, help='embedding dimension')
+    parser.add_argument('--embed_dim', type=int, default=256, help='embedding dimension')
     parser.add_argument('--g_dim', type=int, default=32, help='generator feature basic dimension')
     parser.add_argument('--d_dim', type=int, default=64, help='discriminaotr feature basic dimension')
 
