@@ -239,7 +239,7 @@ class Generator_128(tf.keras.layers.Layer):
         model = []
 
         for i in range(2):
-            model += [ResBlock(self.channels * 2, name='resblock_' + str(i))]
+            model += [ResBlock(self.channels * 3, name='resblock_' + str(i))]
 
         model += [UpBlock(self.channels, name='up_block')]
 
@@ -256,13 +256,15 @@ class Generator_128(tf.keras.layers.Layer):
     def call(self, inputs, training=True):
         h_code, c_code, word_emb, mask = inputs
         c_code, _ = self.spatial_attention([h_code, c_code, word_emb, mask])
+        f_code = self.feature_attention([h_code])
 
-        h_c_code = tf.concat([h_code, c_code], axis=-1)
+        h_c_f_code = tf.concat([h_code, c_code, f_code], axis=-1)
 
-        h_code = self.model(h_c_code, training=training)
+        h_code = self.model(h_c_f_code, training=training)
         x = self.generate_img_block(h_code)
 
         return c_code, h_code, x
+
 class Generator_256(tf.keras.layers.Layer):
     def __init__(self, channels, name='Generator_256'):
         super(Generator_256, self).__init__(name=name)
