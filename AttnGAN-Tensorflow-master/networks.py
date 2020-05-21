@@ -132,6 +132,36 @@ class SpatialAttention(tf.keras.layers.Layer):
 
         return weighted_context, word_attn
 
+class FeatureAttention(tf.keras.layers.Layer):
+    def __init__(self, channels, name='SpatialAttention'):
+        super(FeatureAttention, self).__init__(name=name)
+        self.channels = channels # idf, x.shape[-1]
+
+        self.conv_f = Conv(self.channels, kernel=1, stride=1, use_bias=False, name='conv_f')
+        self.conv_g = Conv(self.channels, kernel=1, stride=1, use_bias=False, name='conv_g')
+        
+
+    def build(self, input_shape):
+        self.bs, self.h, self.w, self.r = input_shape[0]
+        self.hw = self.h * self.w # length of query
+        
+    def call(self, inputs, training=True):
+        x = inputs 
+        x = tf.reshape(x, shape=[self.bs, self.hw, -1])
+        x = tf.expand_dims(x, axis = -1)
+        
+        x_f = self.conv_f(x)
+        x_g = self.conv_g(x)
+        x_f = tf.reshape(x_f, shape = [self.bs, self.hw, -1])
+        x_g = tf.reshape(x_g, shape = [self.bs, self.hw, -1])
+
+        attn = tf.matmul(x_f, tf.transpose(x_g, perm = [0,2,1])) 
+        attn = tf.nn.softmax(attn)
+        
+        weighted_context = tf.matmul(tf.squeeze(x), attn, transpose_a=True, transpose_b=True)
+        weighted_context = tf.reshape(tf.transpose(weighted_context, perm=[0, 2, 1]), shape=[self.bs, self.h, self.w, -1])
+        
+        return weighted_context
 
 class UpBlock(tf.keras.layers.Layer):
     def __init__(self, channels, name='UpBlock'):
@@ -201,6 +231,7 @@ class Generator_128(tf.keras.layers.Layer):
         self.channels = channels # gf_dim
 
         self.spatial_attention = SpatialAttention(channels=self.channels)
+        self.feature_attention = FeatureAttention(channels=self.channels)
 
         self.model, self.generate_img_block = self.architecture()
 
@@ -232,7 +263,6 @@ class Generator_128(tf.keras.layers.Layer):
         x = self.generate_img_block(h_code)
 
         return c_code, h_code, x
-
 class Generator_256(tf.keras.layers.Layer):
     def __init__(self, channels, name='Generator_256'):
         super(Generator_256, self).__init__(name=name)
