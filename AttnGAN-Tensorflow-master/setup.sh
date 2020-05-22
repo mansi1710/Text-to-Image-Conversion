@@ -1,5 +1,13 @@
 #!/bin/bash
 
+# Basic environment installs
+apt install update
+apt install upgrade -y
+apt install install -y libsm6 libxext6 libxrender-dev wget git
+
+# Pip installs
+pip install opencv-python
+
 # Download and extract dataset
 wget http://www.vision.caltech.edu/visipedia-data/CUB-200-2011/CUB_200_2011.tgz -O CUB_200_2011.tgz
 mkdir dataset
