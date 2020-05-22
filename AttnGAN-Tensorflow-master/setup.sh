@@ -1,9 +1,9 @@
 #!/bin/bash
 
 # Basic environment installs
-apt install update
-apt install upgrade -y
-apt install install -y libsm6 libxext6 libxrender-dev wget git
+apt update
+apt upgrade -y
+apt install -y libsm6 libxext6 libxrender-dev wget
 
 # Pip installs
 pip install opencv-python
