@@ -40,7 +40,8 @@ class Image_data:
                           true_fn=lambda : augmentation(img, augment_height_size, augment_width_size, seed),
                           false_fn=lambda : img)
 
-        return img, captions, class_id
+        if class_id is not None: return img, captions, class_id
+        else: return img, captions
 
     def preprocess(self):
         train_images = []
