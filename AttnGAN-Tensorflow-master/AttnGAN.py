@@ -186,6 +186,7 @@ class AttnGAN():
 
             if self.manager.latest_checkpoint:
                 self.ckpt.restore(self.manager.latest_checkpoint).expect_partial()
+                self.start_iteration = int(self.manager.latest_checkpoint.split('-')[-1])
                 print('Latest checkpoint restored!!')
                 print('start iteration : ', self.start_iteration)
             else:
@@ -379,9 +380,9 @@ class AttnGAN():
         caption = tf.gather(caption, target_sentence_index, axis=1)
 
         word_emb, sent_emb, mask = self.rnn_encoder(caption, training=False)
-
+        c_code, mu, logvar = self.ca_net(sent_emb, training=False)
         z = tf.random.normal(shape=[self.batch_size, self.z_dim])
-        fake_imgs, _, _ = self.generator([z, sent_emb, word_emb, mask], training=False)
+        fake_imgs = self.generator([c_code, z, word_emb, mask], training=False)
 
         fake_256 = fake_imgs[-1]
 
