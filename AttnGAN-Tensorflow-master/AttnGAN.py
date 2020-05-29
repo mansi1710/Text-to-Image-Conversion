@@ -402,7 +402,7 @@ class AttnGAN():
         c_code, mu, logvar = self.ca_net(sent_emb, training=False)
 
         z = tf.random.normal(shape=[self.batch_size, self.z_dim])
-        fake_imgs = self.generator([c_code, z, word_emb, mask], training=False)
+        fake_imgs = self.generator([c_code, z, word_emb, mask], training=True)
 
         fake_256 = fake_imgs[-1]
 
