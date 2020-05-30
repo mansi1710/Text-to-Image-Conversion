@@ -1,5 +1,6 @@
 from utils import *
 import time
+import matplotlib.pyplot as plt
 from tensorflow.python.data.experimental import prefetch_to_device, shuffle_and_repeat, map_and_batch # >= tf 1.15
 from networks import *
 
@@ -99,7 +100,7 @@ class AttnGAN():
         idx_to_word : 5450 5450
         """
 
-        if self.phase == 'train' :
+        if self.phase == 'train':
             self.dataset_num = len(train_images)
 
             img_and_caption = tf.data.Dataset.from_tensor_slices((train_images, train_captions, train_class_id))
@@ -160,7 +161,7 @@ class AttnGAN():
             self.dataset_num = len(test_captions)
 
             gpu_device = '/gpu:0'
-            img_and_caption = tf.data.Dataset.from_tensor_slices((test_images, test_captions))
+            img_and_caption = tf.data.Dataset.from_tensor_slices((train_images, train_captions))
 
             img_and_caption = img_and_caption.apply(
                 shuffle_and_repeat(self.dataset_num)).apply(
@@ -173,19 +174,38 @@ class AttnGAN():
             self.rnn_encoder = RnnEncoder(n_words=self.vocab_size, embed_dim=self.embed_dim,
                                           drop_rate=0.5, n_hidden=128, n_layer=1,
                                           bidirectional=True, rnn_type='lstm')
+            self.cnn_encoder = CnnEncoder(embed_dim=self.embed_dim)
             self.ca_net = CA_NET(c_dim=self.z_dim)
             self.generator = Generator(channels=self.g_dim)
+            
+            # self.discriminator = Discriminator(channels=self.d_dim, embed_dim=self.embed_dim)
 
+            # """ Optimizer """
+            # self.g_optimizer = tf.keras.optimizers.Adam(learning_rate=self.init_lr, beta_1=0.5, beta_2=0.999, epsilon=1e-08)
+
+            # d_64_optimizer = tf.keras.optimizers.Adam(learning_rate=self.init_lr, beta_1=0.5, beta_2=0.999, epsilon=1e-08)
+            # d_128_optimizer = tf.keras.optimizers.Adam(learning_rate=self.init_lr, beta_1=0.5, beta_2=0.999, epsilon=1e-08)
+            # d_256_optimizer = tf.keras.optimizers.Adam(learning_rate=self.init_lr, beta_1=0.5, beta_2=0.999, epsilon=1e-08)
+            # self.d_optimizer = [d_64_optimizer, d_128_optimizer, d_256_optimizer]
+
+            # self.embed_optimizer = tf.keras.optimizers.Adam(learning_rate=self.init_lr, beta_1=0.5, beta_2=0.999, epsilon=1e-08)
 
             """ Checkpoint """
-            self.ckpt = tf.train.Checkpoint(rnn_encoder=self.rnn_encoder,
+            self.ckpt = tf.train.Checkpoint(rnn_encoder=self.rnn_encoder, cnn_encoder=self.cnn_encoder,
                                             ca_net = self.ca_net,
                                             generator=self.generator)
+                                            # discriminator=self.discriminator,
+                                            # g_optimizer=self.g_optimizer,
+                                            # d_64_optimizer=d_64_optimizer,
+                                            # d_128_optimizer=d_128_optimizer,
+                                            # d_256_optimizer=d_256_optimizer,
+                                            # embed_optimizer=self.embed_optimizer)
             self.manager = tf.train.CheckpointManager(self.ckpt, self.checkpoint_dir, max_to_keep=2)
             self.start_iteration = 0
 
             if self.manager.latest_checkpoint:
                 self.ckpt.restore(self.manager.latest_checkpoint).expect_partial()
+                self.start_iteration = int(self.manager.latest_checkpoint.split('-')[-1])
                 print('Latest checkpoint restored!!')
                 print('start iteration : ', self.start_iteration)
             else:
@@ -379,9 +399,10 @@ class AttnGAN():
         caption = tf.gather(caption, target_sentence_index, axis=1)
 
         word_emb, sent_emb, mask = self.rnn_encoder(caption, training=False)
+        c_code, mu, logvar = self.ca_net(sent_emb, training=False)
 
         z = tf.random.normal(shape=[self.batch_size, self.z_dim])
-        fake_imgs, _, _ = self.generator([z, sent_emb, word_emb, mask], training=False)
+        fake_imgs = self.generator([c_code, z, word_emb, mask], training=True)
 
         fake_256 = fake_imgs[-1]
 

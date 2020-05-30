@@ -3,3 +3,5 @@ logs/
 checkpoint/
 results/
 samples/
+__pycache__/
+.vscode/
